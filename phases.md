@@ -7,6 +7,7 @@
 4. User can modify the plan based on their requirements.
 5. The agent should save the plan to a document.
 6. Ensure support for multi-agent architecture going forward.
+7. Mention token usage at each step.
 
 ## Phase 2:
 1. Support generating examples step wise according to the plan.
