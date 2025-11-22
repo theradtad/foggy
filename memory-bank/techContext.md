@@ -1,113 +1,120 @@
-# Technical Context & Environment
+# Technology Context: Development Environment & Tools
 
-## Technology Stack
+## Core Technology Stack
 
-### Core Language & Runtime
-- **Python Version**: 3.13+ (latest stable with modern features)
-- **Runtime Environment**: Native Python with virtual environment management
-- **Package Management**: Poetry for dependency management and packaging
+### Programming Language
+- **Python 3.10+**: Base language supporting modern type annotations and async patterns
+- **Justification**: Excellent ecosystem for AI/ML, strong typing support, excellent langchain/LangGraph integration
 
-### Development Tools
-- **Code Formatting**: Ruff (unified linter, formatter, and import organizer)
-- **Type Checking**: Built-in Python typing with strict annotation requirements
-- **Testing Framework**: pytest with comprehensive test coverage requirements
-- **Documentation**: Google-style docstrings for all functions and classes
+### AI/ML Framework
+- **LangChain**: Core framework for LLM application development
+- **LangGraph**: Stateful orchestration for conversational AI workflows
+- **LangChain Google GenAI**: Google Gemini integration for LLM capabilities
+- **LangChain Community**: Additional integrations and tools
+
+### Dependency Management
+- **Poetry**: Modern Python dependency management and packaging
+- **pyproject.toml**: PEP 621 compliant project configuration
+
+## Development Tools
+
+### Code Quality & Formatting
+- **Ruff**: Lightning-fast Python linter and code formatter (replaces flake8, black, isort)
+- **Configuration**: Ruff handles code formatting, import sorting, and linting in single tool
 
 ### CLI Framework
-- **Command Line Interface**: Click for building CLI applications
-- **Script Entry Point**: Poetry script configuration for `foggy` command
+- **Click**: Pythonic command-line interface creation
+- **Structure**: Organized command hierarchy with `foggy.cli.commands` module
 
-### Agent & AI Framework
-- **LLM Integration**: LangChain for agent orchestration and LLM interactions
-- **Agent Framework**: LangGraph for complex multi-agent workflows
-- **Prompt Management**: Structured prompt templates with version control
+### Type System
+- **Typing Module**: Comprehensive type annotations for all functions, methods, classes
+- **Pydantic**: Data validation and serialization with type enforcement
 
-### Storage & Persistence
-- **Relational Database**: SQLite for structured data (users, sessions, progress)
-- **Document Storage**: Markdown files for human-readable content and examples
-- **Migration Tools**: Alembic for database schema evolution
+## Testing & Quality Assurance
 
-### Web Interface (Phase 5)
-- **Backend Framework**: FastAPI for REST API development
-- **Frontend Framework**: Gradio for accessible web UI
-- **ASGI Server**: Uvicorn for production deployment
+### Testing Framework
+- **pytest**: Standard Python testing framework
+- **Coverage**: 90%+ target coverage for reliability
+- **Test Organization**: Located in `tests/` directory with proper structure
 
-### Development Environment
-- **Version Control**: Git with conventional commit messages
-- **IDE Support**: VS Code with Python extensions
-- **Environment Management**: conda/venv with Poetry integration
+### Documentation
+- **Google Style Docstrings**: Comprehensive documentation for all public APIs
+- **README.md**: Project overview and usage instructions
+- **Documentation**: Additional docs in `docs/` directory for features and guides
+
+## External Dependencies
+
+### Core Dependencies
+- `langchain (>=1.0.7,<2.0.0)`: LLM application framework
+- `langchain-google-genai (>=3.0.3,<4.0.0)`: Google Gemini integration
+- `langchain-community (>=0.0.38,<1.0.0)`: Community integrations
+- `langgraph (>=1.0.3,<2.0.0)`: Conversational AI orchestration
+
+### Utility Dependencies
+- `click (>=8.1.3)`: Command-line interface framework
+- `pytest (>=7.4.2)`: Testing framework
+- `python-dotenv (>=1.2.1,<2.0.0)`: Environment variable management
+- `langchain-tavily (>=0.2.13)`: Web search integration
+
+## Development Environment
+
+### Local Development
+- **Poetry Shell**: Isolated development environment
+- **VS Code**: Primary IDE with Python extensions
+- **Environment Variables**: `.env` file for API keys and configuration
+
+### Version Control
+- **Git**: Distributed version control system
+- **GitHub**: Remote repository hosting at `https://github.com/theradtad/foggy.git`
 
 ## Technical Constraints
 
-### Performance Requirements
-- **Response Time**: Sub-second responses for CLI interactions
-- **Memory Usage**: Efficient memory management for long-running sessions
-- **Storage Efficiency**: Optimized storage for content and progress data
+### Python Version
+- **Minimum**: Python 3.10 required
+- **Maximum**: Python 3.13 (future compatibility)
+- **Reasoning**: Type annotation features, performance improvements, ecosystem maturity
 
-### Compatibility Requirements
-- **Platform Support**: Windows, macOS, Linux compatibility
-- **Python Version**: Strict 3.13+ requirement (no backward compatibility)
-- **Dependency Stability**: Use stable, well-maintained packages
+### API Limitations
+- **External APIs**: Google Gemini and Tavily Search have rate limits and costs
+- **Local Processing**: Primary computation stays local for privacy and speed
+- **Network Dependency**: Web search features require internet connectivity
 
-### Security Considerations
-- **Input Validation**: Comprehensive validation of all user inputs
-- **Data Sanitization**: Prevent injection attacks and malicious content
-- **Session Security**: Secure handling of user sessions and data
+### Resource Requirements
+- **Memory**: Sufficient for LLM context windows and conversation state
+- **Storage**: Local storage for learning plans and progress data
+- **Network**: Required for AI model calls and web search integration
 
-## Development Setup
+## Security Considerations
 
-### Local Development Environment
-```bash
-# Clone repository
-git clone <repository-url>
-cd foggy
+### Data Privacy
+- **Local Storage**: All learning data stored locally in markdown files
+- **API Keys**: Sensitive keys managed through environment variables
+- **No Data Transmission**: Learning progress and plans never sent to external servers
 
-# Set up Python environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+### Input Validation
+- **Pydantic Models**: Strict data validation on all inputs
+- **Sanitization**: User inputs validated and sanitized before processing
+- **Error Handling**: Secure error messages that don't expose system internals
 
-# Install dependencies
-poetry install
+## Deployment & Distribution
 
-# Install pre-commit hooks
-poetry run pre-commit install
+### Packaging
+- **Poetry Build**: Standard Python wheel/sdist distribution
+- **CLI Entry Point**: `foggy` command available after installation
+- **Dependencies**: All dependencies bundled for reliable installation
 
-# Run tests
-poetry run pytest
+### Environment Setup
+- **Installation**: `pip install` or `poetry install`
+- **Configuration**: Environment variables for API access
+- **First Run**: Automatic setup prompts for initial configuration
 
-# Run application
-poetry run foggy
-```
+## Future Technology Evolution
 
-### Code Quality Gates
-- **Linting**: Ruff checks must pass
-- **Type Checking**: mypy strict mode compliance
-- **Test Coverage**: Minimum 90% coverage required
-- **Documentation**: All public APIs documented
+### Monitoring Upgrades
+- **Python Versions**: Track 3.12+ features for modernization
+- **LangChain Updates**: Stay current with latest framework features
+- **AI Models**: Evaluate newer models for improved learning experiences
 
-### Build & Deployment
-- **Package Building**: Poetry build for distribution
-- **Containerization**: Docker support for deployment
-- **CI/CD**: GitHub Actions for automated testing and releases
-
-## Tool Usage Patterns
-
-### Code Organization
-- **Package Structure**: Modular design with clear separation of concerns
-- **Import Strategy**: Absolute imports with explicit module structure
-- **Configuration**: Centralized configuration management
-
-### Testing Strategy
-- **Unit Tests**: Comprehensive unit test coverage for all modules
-- **Integration Tests**: End-to-end testing of critical user flows
-- **Mock Strategy**: Extensive use of mocks for external dependencies
-
-### Error Handling
-- **Exception Hierarchy**: Custom exception classes for different error types
-- **Logging Strategy**: Structured logging with appropriate log levels
-- **User Communication**: Clear, actionable error messages
-
-### Performance Optimization
-- **Async/Await**: Extensive use of asynchronous programming
-- **Caching Strategy**: Intelligent caching for expensive operations
-- **Resource Management**: Proper cleanup and resource limits
+### Scalability Preparation
+- **Async Architecture**: Foundation for concurrent learning sessions
+- **Modular Design**: Easy addition of new learning tools and capabilities

@@ -2,56 +2,69 @@
 
 ## Why Foggy Exists
 
-### The Problem
-Traditional coding education faces significant challenges in the modern AI-assisted development landscape:
+### The Problem with Traditional Learning
+In the age of AI coding assistants, traditional learning methods are becoming increasingly inadequate:
 
-1. **Paradigm Shift**: AI coding assistants have fundamentally changed how developers work, making memorization of syntax less critical while elevating the importance of conceptual understanding and design patterns.
+1. **Syntax Memorization vs. Understanding**: Most tutorials focus on syntax memorization, but AI handles syntax completion
+2. **Outdated Content**: Many tutorials become outdated quickly with rapidly evolving frameworks
+3. **Rigid Learning Paths**: Traditional courses follow fixed curricula that don't adapt to individual needs
+4. **Lack of Real-World Context**: Academic-style learning often misses practical application patterns
+5. **No Personalized Feedback**: Generic tutorials can't provide tailored guidance based on learning style
 
-2. **Inefficient Learning**: Existing learning resources often follow one-size-fits-all approaches that don't account for individual knowledge gaps, learning pace, or specific project needs.
+### AI's Impact on Development Workflow
+AI has fundamentally changed how developers work:
+- **Immediate Help**: AI can instantly provide syntax completion and basic examples
+- **Faster Research**: Developers can quickly investigate new libraries and frameworks
+- **Different Knowledge Needs**: Instead of memorizing APIs, developers need to understand concepts and patterns
 
-3. **Lack of Personalization**: Current educational tools don't adapt to a learner's existing knowledge or provide structured progression from concepts to practical application.
+### Current Learning Gaps
+Despite AI assistance, developers struggle with:
+- **Deep Concept Understanding**: Moving beyond syntax to architectural patterns
+- **Practical Application**: Translating concepts into real projects
+- **Learning Efficiency**: Maximizing effectiveness of study time
+- **Framework Mastery**: Understanding design patterns and best practices specific to each technology
 
-4. **No Progress Tracking**: Learners struggle to maintain momentum without clear visibility into their advancement and areas needing reinforcement.
+## Foggy's Solution
 
-5. **Limited Feedback Loops**: Without immediate, contextual feedback on practical work, learners can't effectively correct misunderstandings.
+### Personalized Learning Experience
+Foggy bridges the gap between AI assistance and comprehensive learning by providing:
 
-### The Solution
-Foggy addresses these challenges by providing:
+1. **Goal-Oriented Learning**: Users define their objectives, Foggy creates customized learning paths
+2. **Knowledge Assessment**: Evaluates existing knowledge to avoid redundant content
+3. **Progressive Learning**: Builds understanding through concept → example → project cycles
+4. **Contextual Research**: Leverages web search to provide current, relevant information
+5. **Continuous Evaluation**: Provides feedback and suggests improvements or retakes
 
-1. **Adaptive Learning Paths**: Conversational assessment to understand user goals and current knowledge, creating personalized learning trajectories.
+### Unique Value Proposition
+- **Your Personal Technology Mentor**: Combines AI intelligence with human-like mentorship
+- **Project-First Learning**: Every concept taught through practical application
+- **Adaptive Pace**: Learning plans adjust based on user feedback and progress
+- **Knowledge Preservation**: Learning history stored locally for future reference
 
-2. **Structured Knowledge Building**: Each learning section follows a proven progression: conceptual understanding → practical examples → hands-on projects.
+## User Experience Goals
 
-3. **Progress Persistence**: Comprehensive tracking of learning advancement with the ability to resume where left off.
+### Primary User Journey
+1. **Discovery**: User describes learning goals in natural language
+2. **Assessment**: System evaluates knowledge prerequisites
+3. **Planning**: AI generates comprehensive, section-wise learning plans
+4. **Learning**: Guided progression through concepts, examples, and projects
+5. **Feedback**: Real-time evaluation with suggestions for improvement
+6. **Iteration**: Support for redoing sections with varied approaches
 
-4. **Intelligent Evaluation**: AI-powered assessment of user work with constructive feedback and suggestions for improvement.
+### Design Principles
+- **Conversational Interface**: Natural language interaction throughout
+- **Progress Transparency**: Clear visibility into learning journey
+- **Decision Control**: Human-in-the-loop for all major decisions
+- **Local Privacy**: Learning data stored locally, no external data sharing
+- **Framework Agnostic**: Supports learning any programming language, library, or framework
 
-5. **Redo Capabilities**: Support for revisiting sections with fresh examples when additional practice is needed.
+### Success Metrics
+- **Learning Effectiveness**: Users successfully complete their learning objectives
+- **Engagement**: Active participation in learning process
+- **Satisfaction**: Positive feedback on learning experience and guidance quality
+- **Retention**: Long-term application of learned concepts in personal projects
 
-## How Foggy Works
-
-### User Journey
-1. **Initial Assessment**: User specifies learning goal (e.g., "Learn React") and agent assesses prerequisite knowledge
-2. **Plan Creation**: Agent generates structured learning plan with sections covering concepts, examples, and projects
-3. **Guided Learning**: User progresses through sections with agent providing content and Q&A support
-4. **Practical Application**: User completes mini-projects with real-time feedback
-5. **Evaluation & Iteration**: Agent assesses work, provides feedback, and suggests redos if needed
-
-### Key User Experience Principles
-- **Human-in-the-Loop**: Every major decision requires user approval and input
-- **Progressive Disclosure**: Information revealed gradually to avoid overwhelming learners
-- **Immediate Feedback**: Quick assessment and guidance on practical work
-- **Flexibility**: Users can modify plans, skip sections, or request different examples
-- **Persistence**: Learning progress maintained across sessions
-
-### Technical Architecture Vision
-- **Multi-Agent System**: Specialized agents for planning, teaching, evaluation
-- **Hybrid Storage**: SQLite for structured data, Markdown for human-readable content
-- **Web-First Design**: Accessible interface through modern web technologies
-- **Extensible Framework**: Support for new languages, frameworks, and learning methodologies
-
-## Success Metrics
-- **Learning Effectiveness**: Users successfully complete learning objectives and apply knowledge in projects
-- **User Engagement**: High completion rates and voluntary return usage
-- **Satisfaction**: Positive feedback on personalization and feedback quality
-- **Scalability**: Support for growing user base and content library
+## Market Context
+- **Target Audience**: Developers learning new technologies, from beginners to experienced professionals switching domains
+- **Competitive Landscape**: Differentiates from generic tutorials, MOOCs, and documentation by providing personalized, AI-powered mentorship
+- **Technology Trends**: leverages cutting-edge LLM and agent technologies to create adaptive learning experiences

@@ -1,50 +1,67 @@
 # Active Context: Current Development Focus
 
-## Current Work Status
-- **Phase**: Pre-Phase 1 (Project Initialization)
-- **Status**: Setting up foundational memory bank and project structure
-- **Next Milestone**: Complete Phase 1 core functionality (interactive goal assessment and planning)
+## Immediate Work Focus
+Implementing the LangGraph-powered AI agent for Foggy's core conversational tutoring functionality. The system is undergoing a major architecture shift from basic CLI to full conversational AI agent with learning plan generation, progress tracking, and human-in-the-loop validation.
 
-## Recent Changes
-- Initialized memory bank structure with core documentation files
-- Established project foundation with clear requirements and scope
-- Defined technical architecture vision and user experience principles
+## Current Development Phase
+**LangGraph Implementation Phase 1: Foundation Setup**
 
-## Active Decisions & Considerations
+### Recently Completed
+- ✅ Dependencies verified and requirements updated for LangGraph
+- ✅ Core data structures defined (PlanState, Tasks pydantic models)
+- ✅ LangGraph module directory structure established
+- ✅ Search tool implemented with Tavily integration
+- ✅ Todo management tools implemented (create_todo, update_todo_status, read_todo, get_pending_todos)
+- ✅ Save Learning Plan tool implemented
 
-### Technical Architecture Decisions
-- **Multi-Agent Framework**: Need to evaluate LangGraph vs custom agent orchestration for Phase 1 implementation
-- **Storage Strategy**: Confirmed hybrid approach (SQLite + Markdown) - need to design initial schema
-- **Web Integration**: Planning FastAPI + Gradio stack for Phase 5, ensuring CLI compatibility
+### In Progress
+**Welcome Message Node**: Setting up the initial user interaction node that welcomes users and prompts for learning goals.
 
-### Implementation Priorities
-- **Phase 1 Focus**: Core conversation flow for goal assessment and plan creation
-- **Web Browsing**: Need to implement web search capability for prerequisite research
-- **Plan Persistence**: Design flexible plan storage supporting user modifications
+### Upcoming Work (Next Steps)
+1. **Human Goal Node**: Implement user input handling for learning objectives with exit options
+2. **AITodoListGenerator Node**: Create LLM-powered todo generation based on user goals
+3. **Human Node**: Build generic human feedback collection node
+4. **Planner Node**: Core LLM agent implementation
+5. **Write Plan Node**: File output handling for generated plans
+6. **Graph Assembly**: Connect all nodes with conditional edges
+7. **State Management**: Implement PlanState with messages, todos, and completion tracking
 
-## Key Technical Patterns
-- **Agent State Management**: Implement clean state transitions between learning sections
-- **Content Generation**: Establish patterns for example and project generation
-- **User Interaction**: Design conversational interfaces that support both CLI and future web UI
+## Important Technical Decisions
+- Using LangGraph for stateful conversational AI instead of basic LangChain chains
+- Human-in-the-loop validation at every major step of the learning process
+- Tool-based architecture with web search, todo management, and file operations
+- Section-wise learning with state reset between sections
+- Local markdown file storage for learning plans and progress
 
-## Current Challenges
-- **Agent Architecture**: Determining optimal agent specialization and communication patterns
-- **Content Structure**: Designing flexible content templates for different learning sections
-- **Progress Tracking**: Creating comprehensive yet simple progress persistence model
+## Active Patterns & Preferences
+- Functions over classes in LangGraph flows (following langchain best practices)
+- Comprehensive type annotations on all functions/methods
+- Google-style docstrings for all components
+- Async/await patterns for I/O operations
+- Pydantic models for data validation and serialization
+- Click-based CLI framework for command-line interface
 
-## Next Steps
-1. **Phase 1 Planning**: Design core conversation flows and agent interactions
-2. **Technical Foundation**: Set up basic project structure with agent framework
-3. **Web Search Integration**: Implement prerequisite research capabilities
-4. **Plan Generation**: Create structured plan creation and modification system
+## Key Constraints & Considerations
+- All major decisions require human validation and approval
+- State must be cleanly reset between learning sections
+- Learning plans stored in user-accessible markdown format
+- Support for Q&A on generated examples and content
+- Progressive learning approach: concepts → examples → mini-projects
 
-## Open Questions
-- How granular should agent specialization be? (planning vs teaching vs evaluation)
-- What level of plan customization should users have during creation?
-- How to balance structured learning with user flexibility?
+## Recent Insights
+- LangGraph provides excellent framework for complex conversational flows with conditional routing
+- Tool calling architecture enables modular, extensible functionality
+- Human validation nodes are crucial for maintaining learning quality and user satisfaction
+- State management becomes critical when handling multi-step learning processes with persistent data
 
-## Important Patterns & Preferences
-- **Human-in-the-Loop**: Every major decision requires explicit user approval
-- **Progressive Complexity**: Start simple, add sophistication in later phases
-- **Content Persistence**: Maintain human-readable formats alongside structured data
-- **Error Recovery**: Design for graceful handling of conversation breaks and state recovery
+## Risk Considerations
+- Complex graph assembly requires careful edge definition and state management
+- Tool calling errors need graceful handling and user feedback
+- LLM hallucinations in learning plan generation need validation layers
+- File I/O operations require robust error handling and validation
+
+## Next Checkpoints
+1. Welcome Message Node completion and testing
+2. First end-to-end graph flow (welcome → goal input)
+3. Integration testing of todo generation and human validation
+4. Full learning plan generation with file persistence

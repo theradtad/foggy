@@ -34,6 +34,7 @@
 - **PEP 8 Compliance:** Adhere to PEP 8 guidelines for code style, with Ruff as the primary linter and formatter.
 - **Explicit over Implicit:** Favor explicit code that clearly communicates its intent over implicit, overly concise code.
 - **Zen of Python:** Keep the Zen of Python in mind when making design decisions.
+- **Langchain Style Coding:** Utilise functions over classes in Langgraph and langchain flows.
 
 ## 2. Modular Design
 

@@ -12,16 +12,7 @@
     - The evaluator also must suggest redoing the section with different examples if required.
 6. The application must support per section examples used and project to be summarized and stored to ensure no repeat in the case user wishes to redo the section.
 7. The application must support redoing a section.
-8. The application must track user progress through memory.
+8. The application must track user progress through storing data in .md files within the user-learning folder.
 9. Agent state must be wiped after every section.
 10. Human in loop every step of the way wether it is planning, understanding or suggesting a redo.
 11. Support Q&A on the generated example.
-12. The application must persist user progress, plans, and generated content using SQLite database for structured data while maintaining MD files for content readability.
-13. The application must provide a web-based interface using FastAPI backend and Gradio frontend for improved user experience and accessibility.
-
-
-## Future work:
-- Include images to enhance learning
-- Include interactive quizes.
-- Implement vector database for semantic search across historical content
-- Add multi-user support with user authentication and session management

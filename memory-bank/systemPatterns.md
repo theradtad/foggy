@@ -1,101 +1,101 @@
-# System Patterns & Architecture
+# System Patterns: Architecture & Design
 
-## Core Architecture Patterns
+## Core Architecture Overview
+Foggy follows a **conversational AI agent pattern** using LangGraph as the orchestration framework. The system implements a stateful, graph-based workflow with human-in-the-loop validation at critical decision points.
 
-### Multi-Agent Orchestration
-```
-User Interface (CLI/Web) → Agent Coordinator → Specialized Agents
-                                      ↓
-                               State Manager
-                                      ↓
-                            Storage Layer (SQLite + MD)
-```
+## Key Technical Decisions
 
-**Agent Types**:
-- **Planning Agent**: Goal assessment, prerequisite analysis, plan generation
-- **Teaching Agent**: Content delivery, Q&A support, example generation
-- **Evaluation Agent**: Work assessment, feedback provision, redo recommendations
+### LangGraph as Orchestration Framework
+- **Decision Rationale**: LangGraph provides stateful conversation management with conditional routing, essential for multi-step learning workflows with human validation
+- **Benefits**: Clean state management, conditional edge routing, built-in tool calling integration, persistent conversation history
+- **Trade-offs**: Higher complexity compared to simple LangChain chains, but necessary for conversational tutoring complexity
+
+### Tool-Based Architecture
+- **Pattern**: Modular function based tool system for specific capabilities (web search, todo management, file operations)
+- **Implementation**: Custom tools built using LangChain tool framework with proper schema definition
+- **Benefits**: Extensible, testable, clear separation of concerns
+
+### Human-in-the-Loop Design
+- **Pattern**: Mandatory human validation at all major decision points
+- **Nodes**: Dedicated Human nodes for feedback collection on todos, plans, and learning assessments
+- **Benefits**: Ensures quality control, user agency, prevents AI hallucinations in learning recommendations
+
+## Design Patterns
 
 ### State Management Pattern
-- **Section-Based State**: Each learning section maintains isolated state
-- **State Transitions**: Clear progression: Assessment → Planning → Teaching → Evaluation → Completion
-- **State Persistence**: Critical state data persisted, ephemeral state managed in memory
-- **State Recovery**: Ability to resume from any point with minimal data loss
+- **PlanState**: Central state object containing messages, todos, and completion flags
+- **Annotation Pattern**: Uses `add_messages` for conversation history accumulation
+- **State Reset**: Clean slate between learning sections as required
 
-### Content Generation Pipeline
-```
-Learning Goal → Prerequisite Analysis → Section Planning → Content Templates → User Approval → Content Generation
-```
+### Node Function Pattern
+- **Functional Nodes**: Prefer functions over classes for LangGraph nodes (LangChain best practice)
+- **Single Responsibility**: Each node handles one specific interaction type
+- **Type Annotations**: Complete typing for all node functions and return values
 
-## Key Design Patterns
-
-### Conversational Flow Pattern
-- **Question-Answer Loops**: Structured conversation flows with validation
-- **Progressive Disclosure**: Information revealed based on user responses and progress
-- **Fallback Handling**: Graceful degradation when user input is unclear
-
-### Content Structure Pattern
-- **Section Template**: Standardized format for each learning section
-  - Conceptual Overview
-  - Practical Examples
-  - Mini-Project
-  - Assessment Criteria
-- **Content Versioning**: Track different versions of examples and projects for redo functionality
-
-### Storage Abstraction Pattern
-- **Hybrid Storage**: SQLite for relational data, Markdown for human-readable content
-- **Migration Support**: Schema evolution with backward compatibility
-- **Backup Strategy**: Automated backups with recovery mechanisms
+### Tool Implementation Pattern
+- **Schema-First**: Pydantic models define tool input/output schemas
+- **Error Handling**: Comprehensive exception handling with user-friendly messages
+- **Validation**: Input validation using Pydantic model constraints
 
 ## Component Relationships
 
-### Agent Communication
-- **Message Passing**: Structured communication protocol between agents
-- **Shared Context**: Common context object accessible to all agents in a session
-- **Event-Driven**: Agents respond to events rather than direct method calls
-
-### Data Flow Architecture
+### Core Components
 ```
-User Input → Input Processor → Agent Coordinator → Content Generator → Output Formatter → User Display
-                                      ↓
-                               Progress Tracker → Storage Manager
+CLI Layer (Click) → LangGraph Orchestrator → LLM Agent → Tools → File System
+     ↑                                                            ↓
+   User Input                                               Learning Data (Markdown)
 ```
 
-### Error Handling Patterns
-- **Graceful Degradation**: System continues functioning with reduced capabilities
-- **User-Friendly Messages**: Clear error communication without technical jargon
-- **Recovery Mechanisms**: Automatic retry logic with exponential backoff
+### Node Flow Architecture
+```
+start → welcome → human_goal → todo_generator → human_validator → planner → [tool_node] → write_plan → end
+     ↑           ↑              ↑                                                    ↓
+     └───────────┼──────────────┼────────────────────────────────────────────────────┘
+                 Human validation checkpoints
+```
+
+### Data Flow Patterns
+- **Conversation State**: Persistent within session, managed through PlanState
+- **Learning Plans**: Serialized to markdown files in user directory
+- **Progress Tracking**: Stored locally, accessible across sessions
+- **Tool Results**: Temporary, used for immediate decision making
 
 ## Critical Implementation Paths
 
-### Learning Session Lifecycle
-1. **Initialization**: User goal capture and prerequisite assessment
-2. **Planning**: Structured plan creation with user approval
-3. **Execution**: Section-by-section progression with content delivery
-4. **Evaluation**: Work assessment and feedback provision
-5. **Completion**: Progress persistence and session summary
+### Learning Plan Generation
+1. User goal input → Knowledge prerequisite assessment
+2. Web research for current best practices → Plan draft generation
+3. Human validation → Plan refinement → File persistence
 
-### Content Generation Flow
-1. **Context Gathering**: Collect user knowledge level and learning objectives
-2. **Structure Planning**: Design section breakdown and progression
-3. **Content Creation**: Generate examples, projects, and assessment criteria
-4. **Quality Assurance**: Internal validation of generated content
-5. **User Delivery**: Formatted presentation with interaction capabilities
+### Section Learning Cycle
+1. Concept introduction → Example generation → Mini-project creation
+2. User implementation → AI evaluation → Feedback provision
+3. Success check → Progress to next section OR repeat with variations
 
-### Progress Tracking Implementation
-1. **State Capture**: Record user position and completion status
-2. **Progress Metrics**: Track time spent, attempts made, success rates
-3. **Persistence Strategy**: Regular state saves with transaction safety
-4. **Resume Capability**: Restore exact user state across sessions
+### Error Handling Strategy
+- **Invalid Inputs**: Clear user guidance with examples
+- **Tool Failures**: Graceful fallback with user notification
+- **LLM Errors**: Retry logic with human intervention option
+- **File I/O Issues**: Robust error handling with data integrity checks
 
-## Security & Reliability Patterns
+## Architectural Constraints
 
-### Input Validation
-- **Sanitization**: All user inputs validated and sanitized
-- **Type Checking**: Strict type enforcement on data structures
-- **Bounds Checking**: Prevent buffer overflows and resource exhaustion
+### State Boundaries
+- **Session State**: Persistent conversation within tutorial session
+- **Section State**: Reset completely between learning sections
+- **Learning Data**: Persistent across all sessions for progress tracking
 
-### Session Management
-- **Timeout Handling**: Automatic cleanup of inactive sessions
-- **Resource Limits**: Prevent resource exhaustion from long-running sessions
-- **Concurrent Access**: Safe handling of multiple simultaneous sessions
+### Concurrency Model
+- **Single User**: Assumption of single concurrent user per Foggy instance
+- **Sequential Processing**: No concurrent node execution within a session
+- **Async I/O**: Tool operations use async patterns for efficiency
+
+### Data Persistence Strategy
+- **Local First**: All learning data stored locally
+- **Markdown Format**: Human-readable learning plans and progress
+- **Structured Naming**: Consistent file organization in user-learning folder
+
+## Scaling Considerations
+- **Modular Tools**: New capabilities added as independent tools
+- **Graph Extensibility**: New learning workflows supported by extending the graph
+- **Learning Content**: Framework-agnostic design supports any technology stack

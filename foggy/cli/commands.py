@@ -22,7 +22,6 @@ from langchain.agents.middleware import TodoListMiddleware
 
 from foggy.conversation.dummy import DummyConversation
 from foggy.prompts import PLANNING_SYSTEM_PROMPT, PLANNING_EXAMPLE_GOAL, PLANNING_EXAMPLE_PLAN, PLANNING_EXAMPLE_TODO_LIST
-from foggy.tools import get_planning_tools
 
 # Load environment variables
 load_dotenv()
@@ -68,12 +67,11 @@ def plan() -> None:
 
     # Prepare the input with one-shot example
     planning_prompt: str = f"""
+    Here is an example of how to create a learning plan:
+    Example Goal: {PLANNING_EXAMPLE_GOAL.strip()}
+
     Here is an example of a todo list for creating a learning plan:
     Example Todo List: {PLANNING_EXAMPLE_TODO_LIST.strip()}
-
-    Here is an example of how to create a learning plan:
-
-    Example Goal: {PLANNING_EXAMPLE_GOAL.strip()}
 
     Example Response:
     {PLANNING_EXAMPLE_PLAN.strip()}
@@ -83,7 +81,7 @@ def plan() -> None:
     SYS_PROMPT: str = PLANNING_SYSTEM_PROMPT + planning_prompt
 
     # Create the planning agent with system prompt
-    agent = create_agent(llm, tools=get_planning_tools(), system_prompt=SYS_PROMPT)
+    agent = create_agent(llm, tools=[], system_prompt=SYS_PROMPT)
 
     config: dict = {"configurable": {"thread_id": "planning_thread"}}
 
