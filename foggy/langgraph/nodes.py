@@ -7,15 +7,14 @@ Version: 1.0.0
 """
 
 import os
-from typing import List
 
 import click
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 
-from foggy.langgraph.models import PlanState, Task
+from foggy.langgraph.models import PlanState
 from foggy.langgraph.tools import (
     web_search,
     create_todo,
@@ -131,16 +130,16 @@ def human_goal_node(state: PlanState) -> PlanState:
 def todo_list_generator_node(state: PlanState) -> PlanState:
     """AI TodoListGenerator node - generates task list from user's goal.
 
-    Uses LLM to create a set of todos based on the user's learning goal.
-    The todos follow the structure defined in the planning prompts.
+    Uses LLM with tools to create todos via create_todo tool calls.
+    The LLM will use the create_todo tool to add tasks to the state.
 
     Args:
         state: Current PlanState
 
     Returns:
-        Updated PlanState with generated todo list and AI response
+        Updated PlanState with AI response (may include tool calls for creating todos)
     """
-    llm = _get_llm()
+    llm_with_tools = _get_llm_with_tools()
 
     # Get the user's goal from the last human message
     user_goal = ""
@@ -155,44 +154,31 @@ Based on the user's learning goal, create a structured todo list for the plannin
 
 User's goal: {user_goal}
 
-Generate exactly 4 todos in this format:
+Use the create_todo tool to create exactly 4 todos:
 1. Search for requirements and prerequisites for this learning goal
 2. Ask the user about their current knowledge level on prerequisites
 3. Generate a detailed plan covering concepts, examples, and projects
 4. Save the final plan to a file
 
-Return ONLY the todo items as a numbered list, nothing else.
+Call create_todo for each task.
 """
 
-    # Generate todos using LLM
+    # Generate todos using LLM with tools
     messages = [
         SystemMessage(content=PLANNING_SYSTEM_PROMPT),
         HumanMessage(content=todo_generation_prompt),
     ]
 
-    response = llm.invoke(messages)
+    response = llm_with_tools.invoke(messages)
 
-    # Default todos based on the standard planning workflow
-    default_todos = [
-        Task(name="Search for requirements and prerequisites for the user's goal", isFinished=False),
-        Task(name="Ask the user about their current knowledge level on prerequisites", isFinished=False),
-        Task(name="Generate a detailed plan covering concepts, examples, and projects", isFinished=False),
-        Task(name="Save the final plan to a file", isFinished=False),
-    ]
-
-    # Display generated todos
-    click.echo(click.style("\n📋 Generated Todo List:", fg="green"))
-    for i, task in enumerate(default_todos, 1):
-        status = "✓" if task.isFinished else "○"
-        click.echo(f"  {status} {i}. {task.name}")
-    click.echo()
-
-    # Add AI response to messages
-    ai_message = AIMessage(content=f"I've created a todo list to help plan your learning journey:\n{response.content}")
+    # Display response to user
+    if response.content:
+        click.echo(click.style("\n📋 Generating Todo List...", fg="green"))
+        click.echo(response.content)
 
     return {
-        "messages": [ai_message],
-        "todo": default_todos,
+        "messages": [response],
+        "todo": state.todo,
         "finished": state.finished,
     }
 
@@ -301,113 +287,62 @@ def tool_node(state: PlanState) -> PlanState:
 def write_plan_node(state: PlanState) -> PlanState:
     """Write Plan Node - saves the generated plan to a file.
 
-    Processes tool calls for save_learning_plan and updates state accordingly.
+    Processes save_learning_plan tool call and returns ToolMessage with result.
 
     Args:
         state: Current PlanState
 
     Returns:
-        Updated PlanState with confirmation message and updated todos
+        Updated PlanState with ToolMessage containing save result
     """
     # Get the last message which should contain tool calls
     last_message = state.messages[-1] if state.messages else None
 
     if not last_message or not hasattr(last_message, "tool_calls") or not last_message.tool_calls:
-        # No tool calls, try to extract plan content and save directly
-        plan_content = ""
-        user_goal = "learning_plan"
+        error_message = AIMessage(content="No tool calls found to process.")
+        return {
+            "messages": [error_message],
+            "todo": state.todo,
+            "finished": state.finished,
+        }
 
-        for msg in reversed(state.messages):
-            if isinstance(msg, AIMessage) and msg.content:
-                if "##" in msg.content or "Section" in msg.content:
-                    plan_content = msg.content
-                    break
-            elif isinstance(msg, HumanMessage):
-                if "learning goal:" in msg.content.lower():
-                    goal_text = msg.content.replace("My learning goal:", "").strip()
-                    user_goal = goal_text.lower().replace(" ", "_")[:50]
+    # Process tool calls for save_learning_plan
+    outbound_msgs = []
 
-        if not plan_content:
-            error_message = AIMessage(content="No plan content found to save. Please generate a plan first.")
-            return {
-                "messages": [error_message],
-                "todo": state.todo,
-                "finished": state.finished,
-            }
+    for tool_call in last_message.tool_calls:
+        if tool_call["name"] == "save_learning_plan":
+            title = tool_call["args"].get("title", "Learning Plan")
+            content = tool_call["args"].get("content", "")
+            user_goal_name = tool_call["args"].get("user_goal_name", "learning_plan")
 
-        # Extract title from plan
-        title = "Learning Plan"
-        lines = plan_content.split("\n")
-        for line in lines:
-            if line.startswith("# "):
-                title = line.replace("# ", "").strip()
-                break
+            try:
+                file_path = save_learning_plan(
+                    title=title,
+                    content=content,
+                    user_goal_name=user_goal_name
+                )
+                click.echo(click.style(f"\n✅ Plan saved to: {file_path}", fg="green"))
 
-        # Save using the tool
-        try:
-            file_path = save_learning_plan(
-                title=title,
-                content=plan_content,
-                user_goal_name=user_goal
-            )
-            success_message = AIMessage(content=f"✅ Plan saved successfully to: {file_path}")
-            click.echo(click.style(f"\n✅ Plan saved to: {file_path}", fg="green"))
-        except Exception as e:
-            error_message = AIMessage(content=f"❌ Error saving plan: {str(e)}")
-            return {
-                "messages": [error_message],
-                "todo": state.todo,
-                "finished": state.finished,
-            }
-    else:
-        # Process tool calls for save_learning_plan
-        outbound_msgs = []
-        updated_todos = list(state.todo)
+                # Return ToolMessage with result
+                tool_message = ToolMessage(
+                    content=f"Plan saved successfully to: {file_path}",
+                    tool_call_id=tool_call["id"]
+                )
+                outbound_msgs.append(tool_message)
 
-        for tool_call in last_message.tool_calls:
-            if tool_call["name"] == "save_learning_plan":
-                title = tool_call["args"].get("title", "Learning Plan")
-                content = tool_call["args"].get("content", "")
-                user_goal_name = tool_call["args"].get("user_goal_name", "learning_plan")
+            except Exception as e:
+                tool_message = ToolMessage(
+                    content=f"Error saving plan: {str(e)}",
+                    tool_call_id=tool_call["id"]
+                )
+                outbound_msgs.append(tool_message)
 
-                try:
-                    file_path = save_learning_plan(
-                        title=title,
-                        content=content,
-                        user_goal_name=user_goal_name
-                    )
-                    success_message = AIMessage(content=f"✅ Plan saved successfully to: {file_path}")
-                    outbound_msgs.append(success_message)
-                    click.echo(click.style(f"\n✅ Plan saved to: {file_path}", fg="green"))
-
-                    # Mark save task as finished
-                    for i, task in enumerate(updated_todos):
-                        if "save" in task.name.lower() and "plan" in task.name.lower():
-                            updated_todos[i] = Task(name=task.name, isFinished=True)
-
-                except Exception as e:
-                    error_message = AIMessage(content=f"❌ Error saving plan: {str(e)}")
-                    outbound_msgs.append(error_message)
-
-        if outbound_msgs:
-            return {
-                "messages": outbound_msgs,
-                "todo": updated_todos,
-                "finished": state.finished,
-            }
-
-        success_message = AIMessage(content="No save_learning_plan tool calls found.")
-
-    # Update todos - mark save task as finished
-    updated_todos = []
-    for task in state.todo:
-        if "save" in task.name.lower() and "plan" in task.name.lower():
-            updated_todos.append(Task(name=task.name, isFinished=True))
-        else:
-            updated_todos.append(task)
+    if not outbound_msgs:
+        error_message = AIMessage(content="No save_learning_plan tool calls found.")
+        outbound_msgs.append(error_message)
 
     return {
-        "messages": [success_message],
-        "todo": updated_todos,
+        "messages": outbound_msgs,
+        "todo": state.todo,
         "finished": state.finished,
     }
