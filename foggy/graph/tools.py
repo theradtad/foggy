@@ -14,7 +14,7 @@ from langchain.tools import tool, ToolRuntime
 from langgraph.types import Command
 
 from langchain_tavily import TavilySearch
-from foggy.langgraph.models import Task
+from foggy.graph.models import Task
 
 @tool
 def web_search(query: str) -> List[Dict[str, Any]]:

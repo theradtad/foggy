@@ -14,8 +14,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 
-from foggy.langgraph.models import PlanState
-from foggy.langgraph.tools import (
+from foggy.graph.models import PlanState
+from foggy.graph.tools import (
     web_search,
     create_todo,
     update_todo_status,

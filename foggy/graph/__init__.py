@@ -6,8 +6,8 @@ This module contains all LangGraph-related components including:
 - Nodes (welcome_message_node, planner_node, etc.)
 """
 
-from foggy.langgraph.models import PlanState, Task, UserGoal, LearningPlan
-from foggy.langgraph.tools import (
+from foggy.graph.models import PlanState, Task, UserGoal, LearningPlan
+from foggy.graph.tools import (
     web_search,
     create_todo,
     update_todo_status,
@@ -16,7 +16,7 @@ from foggy.langgraph.tools import (
     save_learning_plan,
     should_continue_planning,
 )
-from foggy.langgraph.nodes import (
+from foggy.graph.nodes import (
     welcome_message_node,
     human_goal_node,
     todo_list_generator_node,

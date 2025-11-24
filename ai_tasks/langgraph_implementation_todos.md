@@ -9,12 +9,12 @@
 - [x] **Search Tool Implementation**: Implement tool for Tavily Search 
 - [x] **Todo Tools Implementation**: Implement create_todo, update_todo_status, read_todo, get_pending_todos
 - [x] **Save Learning Plan tool**: Implement Save Learning plan tool.
-- [ ] **Welcome Message Node**: Implement the welcome message node which acts as the starting point in the graph.
-- [ ] **Human Goal Node**: Implement the Human Goal node which takes in the input from user on their goal. User can exit at this step by typing in q or quit. 
-- [ ] **AITodoListGenerator Node**: Implement the TodoListGenerator node which uses an LLM to create a set of todos similar to the example mentioned in prompt.py . 
-- [ ] **Human Node**: Implement the Human Node which allows the user to input data to the LLM (Ex: Feedback on todos, knowledge on pre-requisites, plan validation).
-- [ ] **Planner Node**: The brain of this agent - LLM.
-- [ ] **Write Plan Node**: This writes the plan to the file. 
+- [x] **Welcome Message Node**: Implement the welcome message node which acts as the starting point in the graph.
+- [x] **Human Goal Node**: Implement the Human Goal node which takes in the input from user on their goal. User can exit at this step by typing in q or quit. 
+- [x] **AITodoListGenerator Node**: Implement the TodoListGenerator node which uses an LLM to create a set of todos similar to the example mentioned in prompt.py . 
+- [x] **Human Node**: Implement the Human Node which allows the user to input data to the LLM (Ex: Feedback on todos, knowledge on pre-requisites, plan validation).
+- [x] **Planner Node**: The brain of this agent - LLM.
+- [x] **Write Plan Node**: This writes the plan to the file. 
 - [ ] **Conditional Edge at HumanNode**: Allows user to either respond to and be redirected to the planner node or exit.  
 - [ ] **Conditional Edge at Planner Node**: Based on if tool_call is present (and what type of tool call), routes to tool_node, write_node, edge_node and end.
 - [ ] **Implement the Graph**: Implement the end graph connecting all the nodes.  
