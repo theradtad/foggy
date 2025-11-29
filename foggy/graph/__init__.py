@@ -26,6 +26,7 @@ from foggy.graph.nodes import (
     write_plan_node,
     ALL_TOOLS,
 )
+from foggy.graph.graph import foggy_planner_graph, save_graph_diagram
 
 __all__ = [
     # Models
@@ -50,4 +51,7 @@ __all__ = [
     "tool_node",
     "write_plan_node",
     "ALL_TOOLS",
+    # Graph
+    "foggy_planner_graph",
+    "save_graph_diagram",
 ]

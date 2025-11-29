@@ -61,6 +61,21 @@ def _get_llm_with_tools() -> ChatGoogleGenerativeAI:
     llm = _get_llm()
     return llm.bind_tools(ALL_TOOLS)
 
+def _get_llm_with_todo_tools() -> ChatGoogleGenerativeAI:
+    """Get configured LLM instance with todo management tools bound.
+
+    Returns:
+        ChatGoogleGenerativeAI: Configured Gemini LLM with todo tools bound
+    """
+    llm = _get_llm()
+    todo_tools = [
+        create_todo,
+        update_todo_status,
+        read_todo,
+        get_pending_todos,
+    ]
+    return llm.bind_tools(todo_tools)
+
 
 def welcome_message_node(state: PlanState) -> PlanState:
     """Welcome message node - starting point of the graph.
@@ -139,27 +154,33 @@ def todo_list_generator_node(state: PlanState) -> PlanState:
     Returns:
         Updated PlanState with AI response (may include tool calls for creating todos)
     """
-    llm_with_tools = _get_llm_with_tools()
+    llm_with_tools = _get_llm_with_todo_tools()
 
     # Get the user's goal from the last human message
-    user_goal = ""
-    for msg in reversed(state.messages):
-        if isinstance(msg, HumanMessage):
-            user_goal = msg.content
-            break
+    user_goal = state.messages[-1]
 
+    if (not user_goal):
+        click.echo(click.style("\n❌ Error: No learning goal provided.", fg="red"))
+        return {
+            "messages": [AIMessage(content="Error: No learning goal provided.")],
+            "todo": state.todo,
+            "finished": True,
+        }
+    
     # Create prompt for todo generation
     todo_generation_prompt = f"""
 Based on the user's learning goal, create a structured todo list for the planning process.
 
 User's goal: {user_goal}
 
-Use the create_todo tool to create exactly 4 todos:
+Use the create_todo tool to create todos. For example, the list of todos could be as follows:
 1. Search for requirements and prerequisites for this learning goal
 2. Ask the user about their current knowledge level on prerequisites
 3. Generate a detailed plan covering concepts, examples, and projects
 4. Save the final plan to a file
 
+Save the final plan would be the last step.
+Always use the internet to search for requirements. Hence create a todo for that first.
 Call create_todo for each task.
 """
 
@@ -169,7 +190,10 @@ Call create_todo for each task.
         HumanMessage(content=todo_generation_prompt),
     ]
 
+    click.echo(click.style("\n Foggy is generating your Todo List...", fg="green"))
     response = llm_with_tools.invoke(messages)
+    click.echo(click.style("\n🤖 Foggy:", fg="green"))
+    click.echo(response)
 
     # Display response to user
     if response.content:
@@ -178,6 +202,45 @@ Call create_todo for each task.
 
     return {
         "messages": [response],
+        "todo": state.todo,
+        "finished": state.finished,
+    }
+
+
+def todo_tool_node(state: PlanState) -> PlanState:
+    """Tool Node - executes tool calls from the planner.
+
+    Uses LangGraph's ToolNode to process any tool calls made by the planner node.
+
+    Args:
+        state: Current PlanState
+
+    Returns:
+        Updated PlanState with tool execution results
+    """
+    # Create ToolNode with all available tools
+    todo_tools = [
+        create_todo,
+        update_todo_status,
+        read_todo,
+        get_pending_todos,]
+    tool_executor = ToolNode(todo_tools)
+
+    click.echo(click.style("\n🔧 Executing todo tools...", fg="yellow"))
+    # Execute tools - ToolNode handles the tool calls from the last message
+    result = tool_executor.invoke({"messages": state.messages})
+
+    click.echo(click.style("✅ Tool execution completed.", fg="yellow"))
+
+    # Handle result being either a dict or a PlanState object
+    if isinstance(result, dict):
+        click.echo(type(result))
+        messages = result.get("messages", [])
+    else:
+        messages = result.messages if hasattr(result, "messages") else []
+
+    return {
+        "messages": messages,
         "todo": state.todo,
         "finished": state.finished,
     }
@@ -229,7 +292,7 @@ def planner_node(state: PlanState) -> PlanState:
     Returns:
         Updated PlanState with AI response message (may include tool calls)
     """
-    llm_with_tools = _get_llm_with_tools()
+    llm_with_tools = _get_llm()
 
     # Build conversation context
     messages = [SystemMessage(content=PLANNING_SYSTEM_PROMPT)]
@@ -274,11 +337,21 @@ def tool_node(state: PlanState) -> PlanState:
     # Create ToolNode with all available tools
     tool_executor = ToolNode(ALL_TOOLS)
 
+    click.echo(click.style("\n🔧 Executing tools...", fg="yellow"))
     # Execute tools - ToolNode handles the tool calls from the last message
     result = tool_executor.invoke({"messages": state.messages})
 
+    click.echo(click.style("✅ Tool execution completed.", fg="yellow"))
+
+    # Handle result being either a dict or a PlanState object
+    if isinstance(result, dict):
+        click.echo(type(result))
+        messages = result.get("messages", [])
+    else:
+        messages = result.messages if hasattr(result, "messages") else []
+
     return {
-        "messages": result.get("messages", []),
+        "messages": messages,
         "todo": state.todo,
         "finished": state.finished,
     }

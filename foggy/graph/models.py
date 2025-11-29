@@ -38,6 +38,7 @@ class PlanState(BaseModel):
         default_factory=list, 
         description="List of tasks that need to be completed"
     )
+    todos_created: bool = Field(default=False, description="Whether todos have been created")
     finished: bool = Field(default=False, description="Whether the overall planning process is complete")
 
 

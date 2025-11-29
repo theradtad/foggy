@@ -15,9 +15,9 @@
 - [x] **Human Node**: Implement the Human Node which allows the user to input data to the LLM (Ex: Feedback on todos, knowledge on pre-requisites, plan validation).
 - [x] **Planner Node**: The brain of this agent - LLM.
 - [x] **Write Plan Node**: This writes the plan to the file. 
-- [ ] **Conditional Edge at HumanNode**: Allows user to either respond to and be redirected to the planner node or exit.  
-- [ ] **Conditional Edge at Planner Node**: Based on if tool_call is present (and what type of tool call), routes to tool_node, write_node, edge_node and end.
-- [ ] **Implement the Graph**: Implement the end graph connecting all the nodes.  
+- [x] **Conditional Edge at HumanNode**: Allows user to either respond to and be redirected to the planner node or exit.  
+- [x] **Conditional Edge at Planner Node**: Based on if tool_call is present (and what type of tool call), routes to tool_node, write_node, edge_node and end.
+- [x] **Implement the Graph**: Implement the end graph connecting all the nodes.  
 
 
 ## Design:
