@@ -23,6 +23,7 @@ from foggy.graph.tools import (
     read_todo,
     get_pending_todos,
     save_learning_plan,
+    should_continue_planning
 )
 from foggy.prompts import PLANNING_SYSTEM_PROMPT
 
@@ -37,6 +38,7 @@ ALL_TOOLS = [
     read_todo,
     get_pending_todos,
     save_learning_plan,
+    should_continue_planning
 ]
 
 
@@ -175,7 +177,6 @@ def todo_list_generator_node(state: PlanState) -> PlanState:
 
     todo_tools = [
         create_todo,
-        update_todo_status,
         read_todo,
         get_pending_todos,
     ]
@@ -189,45 +190,12 @@ def todo_list_generator_node(state: PlanState) -> PlanState:
 
     click.echo(click.style("\n Foggy is generating your Todo List...", fg="green"))
     response = todo_agent.invoke({"messages": [{"role": "user", "content": todo_generation_prompt.strip()}]})
+    click.echo(click.style("✅ Todo List generation completed.", fg="green"))
 
     return {
         "messages": response["messages"],
         "todo": response.get("todo", state.get("todo", [])),
         "finished": response.get("finished", state.get("finished", False)),
-    }
-
-
-def human_node(state: PlanState) -> PlanState:
-    """Human Node - generic node for user feedback.
-
-    Takes feedback from the user at various stages of the planning process.
-    This includes feedback on todos, knowledge on prerequisites, plan validation.
-
-    Args:
-        state: Current PlanState
-
-    Returns:
-        Updated PlanState with user feedback message
-    """
-    click.echo(click.style("\nPlease provide your feedback (or 'q' to quit):", fg="cyan"))
-    user_input = click.prompt("", prompt_suffix="").strip()
-
-    # Check for exit commands
-    if user_input.lower() in ["q", "quit", "exit"]:
-        click.echo(click.style("\nGoodbye! Happy learning!", fg="yellow"))
-        return {
-            "messages": [HumanMessage(content=user_input)],
-            "todo": state.todo,
-            "finished": True,
-        }
-
-    # Add user feedback as a human message
-    feedback_message = HumanMessage(content=user_input)
-
-    return {
-        "messages": [feedback_message],
-        "todo": state.todo,
-        "finished": state.finished,
     }
 
 
@@ -243,68 +211,101 @@ def planner_node(state: PlanState) -> PlanState:
     Returns:
         Updated PlanState with AI response message (may include tool calls)
     """
-    llm_with_tools = _get_llm()
+    llm_with_tools = _get_llm_with_tools()
 
     # Build conversation context
     messages = [SystemMessage(content=PLANNING_SYSTEM_PROMPT)]
 
     # Add todo context
-    if state.todo:
+    if state.get("todo", []):
         todo_context = "\n\nCurrent Todo List:\n"
-        for i, task in enumerate(state.todo, 1):
+        for i, task in enumerate(state.get("todo", []), 1):
             status = "✓" if task.isFinished else "○"
             todo_context += f"{status} {i}. {task.name}\n"
         messages.append(SystemMessage(content=todo_context))
 
     # Add conversation history
-    messages.extend(state.messages)
+    messages.extend(state.get("messages", [])) 
+
+    NEXT_STEP_PROMPT = """
+    Based on the conversation so far, decide the next step. You can either:
+    1. Ask the user for some input
+    2. Provide a direct response to the user
+    3. Call a tool to get more information or update the todo list
+        If the todo list contains a step for searching the web, you MUST use the web_search tool to get relevant information.
+        Always perform the web search first before proceeding with other steps.
+    4. Mark a todo as completed using the update_todo_status tool
+    5. Complete the todos one by one and in order.
+    """
+    
+    messages.append(HumanMessage(content=NEXT_STEP_PROMPT))
 
     # Get LLM response
     response = llm_with_tools.invoke(messages)
 
-    # Display AI response to user (if there's content)
-    if response.content:
-        click.echo(click.style("\n🤖 Foggy:", fg="green"))
-        click.echo(response.content)
+    # click.echo(f"LLM Response: {response}")
 
     return {
         "messages": [response],
-        "todo": state.todo,
-        "finished": state.finished,
+        "todo": state.get("todo", []),
+        "finished": state.get("finished", False),
     }
 
 
-def tool_node(state: PlanState) -> PlanState:
-    """Tool Node - executes tool calls from the planner.
+def human_node(state: PlanState) -> PlanState:
+    """Human Node - generic node for user feedback.
 
-    Uses LangGraph's ToolNode to process any tool calls made by the planner node.
+    Takes feedback from the user at various stages of the planning process.
+    This includes feedback on todos, knowledge on prerequisites, plan validation.
 
     Args:
         state: Current PlanState
 
     Returns:
-        Updated PlanState with tool execution results
+        Updated PlanState with user feedback message
     """
-    # Create ToolNode with all available tools
-    tool_executor = ToolNode(ALL_TOOLS)
+    msgs = state.get("messages", [])
+    last_ai_message = None
+    if len(msgs) > 0:
+        last_ai_message = msgs[-1]
+    
+    ai_message_content = ""
+    if last_ai_message and hasattr(last_ai_message, "content"):
+        content = last_ai_message.content
+        # Handle both string content and list of content chunks
+        if isinstance(content, str):
+            ai_message_content = content
+        elif isinstance(content, list):
+            for chunk in content:
+                if isinstance(chunk, dict) and 'text' in chunk:
+                    ai_message_content += chunk['text']
+                elif hasattr(chunk, 'text'):
+                    ai_message_content += chunk.text
+                elif isinstance(chunk, str):
+                    ai_message_content += chunk
 
-    click.echo(click.style("\n🔧 Executing tools...", fg="yellow"))
-    # Execute tools - ToolNode handles the tool calls from the last message
-    result = tool_executor.invoke({"messages": state.messages})
+    if ai_message_content:
+        click.echo(click.style("\n🤖 Foggy:", fg="green", bold=True))
+        click.echo(ai_message_content)
+    click.echo(click.style("\nPlease provide your response (or 'q' to quit):", fg="cyan"))
+    user_input = click.prompt("", prompt_suffix="").strip()
 
-    click.echo(click.style("✅ Tool execution completed.", fg="yellow"))
+    # Check for exit commands
+    if user_input.lower() in ["q", "quit", "exit"]:
+        click.echo(click.style("\nGoodbye! Happy learning!", fg="yellow"))
+        return {
+            "messages": [HumanMessage(content=user_input)],
+            "todo": state.get("todo", []),
+            "finished": True,
+        }
 
-    # Handle result being either a dict or a PlanState object
-    if isinstance(result, dict):
-        click.echo(type(result))
-        messages = result.get("messages", [])
-    else:
-        messages = result.messages if hasattr(result, "messages") else []
+    # Add user feedback as a human message
+    feedback_message = HumanMessage(content=user_input)
 
     return {
-        "messages": messages,
-        "todo": state.todo,
-        "finished": state.finished,
+        "messages": [feedback_message],
+        "todo": state.get("todo", []),
+        "finished": state.get("finished", False),
     }
 
 
@@ -326,8 +327,8 @@ def write_plan_node(state: PlanState) -> PlanState:
         error_message = AIMessage(content="No tool calls found to process.")
         return {
             "messages": [error_message],
-            "todo": state.todo,
-            "finished": state.finished,
+            "todo": state.get("todo", []),
+            "finished": state.get("finished", False),
         }
 
     # Process tool calls for save_learning_plan
@@ -367,6 +368,6 @@ def write_plan_node(state: PlanState) -> PlanState:
 
     return {
         "messages": outbound_msgs,
-        "todo": state.todo,
-        "finished": state.finished,
+        "todo": state.get("todo", []),
+        "finished": state.get("finished", False),
     }

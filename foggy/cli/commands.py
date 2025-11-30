@@ -60,7 +60,7 @@ def plan() -> None:
         # Run the planning graph
         final_state = foggy_planner_graph.invoke(initial_state)
 
-        click.echo("\n✅ Planning completed successfully!")
+        click.echo("\n----- Planning completed successfully! -----\n")
         
         for todo in final_state.get("todo", []):
             status = "✔️" if todo.isFinished else "❌"

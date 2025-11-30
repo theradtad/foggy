@@ -22,7 +22,8 @@ def web_search(query: str) -> List[Dict[str, Any]]:
     """Perform web search for the given query.
     """
     try:
-        click.echo("Performing web search...")
+        click.echo(click.style(f"\n🔍 Tool: web_search", fg="yellow", bold=True))
+        click.echo(click.style(f"   Query: {query}", fg="yellow"))
         os.getenv("TAVILY_API_KEY")  # Ensure API key is set
         web_search = TavilySearch(max_results=3, topic="general")
         results = web_search.run(query)
@@ -44,6 +45,9 @@ def web_search(query: str) -> List[Dict[str, Any]]:
 def create_todo(task_name: str, runtime: ToolRuntime) -> Command:
     """Create a new todo task with isFinished set to False.
     """
+    click.echo(click.style(f"\n📝 Tool: create_todo", fg="yellow", bold=True))
+    click.echo(click.style(f"   Task: {task_name}", fg="yellow"))
+
     # Read current todo list from state
     todo_list = runtime.state.get("todo", [])
 
@@ -69,6 +73,10 @@ def update_todo_status(task_name: str, is_finished: bool, runtime: ToolRuntime) 
     Returns:
         Command to update the state with the modified todo list
     """
+    click.echo(click.style(f"\n✏️ Tool: update_todo_status", fg="yellow", bold=True))
+    click.echo(click.style(f"   Task: {task_name}", fg="yellow"))
+    click.echo(click.style(f"   Status: {'Completed' if is_finished else 'Incomplete'}", fg="yellow"))
+
     # Read current todo list from state
     todo_list = runtime.state.get("todo", [])
 
@@ -100,6 +108,8 @@ def update_todo_status(task_name: str, is_finished: bool, runtime: ToolRuntime) 
 def get_pending_todos(runtime: ToolRuntime) -> List[Task]:
     """Get list of pending (unfinished) todos from state.
     """
+    click.echo(click.style(f"\n📋 Tool: get_pending_todos", fg="yellow", bold=True))
+
     todo_list = runtime.state.get("todo", [])
     pending_todos = [todo for todo in todo_list if not todo.isFinished]
 
@@ -115,12 +125,18 @@ def read_todo(runtime: ToolRuntime) -> List[Task]:
     Returns:
         List of all todos in the current state
     """
+    click.echo(click.style(f"\n📖 Tool: read_todo", fg="yellow", bold=True))
+
     return runtime.state.get("todo", [])
 
 @tool
 def save_learning_plan(title: str, content: str, user_goal_name: str) -> str:
     """Save learning plan to markdown file in learning_plans folder.
     """
+    click.echo(click.style(f"\n💾 Tool: save_learning_plan", fg="yellow", bold=True))
+    click.echo(click.style(f"   Title: {title}", fg="yellow"))
+    click.echo(click.style(f"   File: {user_goal_name}.md", fg="yellow"))
+
     base_path = Path("./learning_plans")
 
     if not base_path.exists():
@@ -141,6 +157,8 @@ def save_learning_plan(title: str, content: str, user_goal_name: str) -> str:
 def should_continue_planning(runtime: ToolRuntime) -> bool:
     """Determine if planning should continue based on current state.
     """
+    click.echo(click.style(f"\n🔄 Tool: should_continue_planning", fg="yellow", bold=True))
+
     todo_list = runtime.state.get("todo", [])
     pending_todos = [todo for todo in todo_list if not todo.isFinished]
     finished = runtime.state.get("finished", False)

@@ -38,6 +38,8 @@ Always respond in a clear, structured format using markdown where appropriate.
 Be encouraging but realistic about the learning journey.
 Adapt the plan's complexity based on typical learner backgrounds.
 IMPORTANT: You should be concise, direct, and to the point. IMPORTANT: You should minimize output tokens as much as possible while maintaining helpfulness, quality, and accuracy.
+IMPORTANT: Always refer to the current Todo List in your responses to stay on track. IMPORTANT: If a tool_call is required, only respond with a tool_call and do not include any additional text.
+IMPORTANT: Execute only one todo at a time and wait for the result before proceeding to the next step.
 """
 
 PLANNING_EXAMPLE_GOAL = """
