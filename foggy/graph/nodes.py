@@ -167,8 +167,10 @@ def todo_list_generator_node(state: PlanState) -> PlanState:
         4. Save the final plan to a file
 
         Save the final plan would be the last step.
-        Always use the internet to search for requirements. Hence create a todo for that first.
+        Always create a todo to search the internet for requirements.
         Call create_todo for each task.
+
+        Your response should ONLY contain tool calls to create_todo. Your goal is only to create the todo list.
         """
 
     todo_tools = [
