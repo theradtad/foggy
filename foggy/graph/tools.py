@@ -12,6 +12,7 @@ import re
 import click
 from langchain.tools import tool, ToolRuntime
 from langgraph.types import Command
+from langchain.messages import ToolMessage
 
 from langchain_tavily import TavilySearch
 from foggy.graph.models import Task
@@ -53,9 +54,7 @@ def create_todo(task_name: str, runtime: ToolRuntime) -> Command:
     # Create command to update state
     return Command(update={
         "todo": updated_todos,
-        "messages": runtime.state.get("messages", []) + [
-            {"role": "system", "content": f"Added todo: {task_name}"}
-        ]
+        "messages": runtime.state.get("messages", []) + [ToolMessage(content=f"Added todo: {task_name}", tool_call_id=runtime.tool_call_id)]
     })
 
 @tool
@@ -85,9 +84,7 @@ def update_todo_status(task_name: str, is_finished: bool, runtime: ToolRuntime) 
 
     if not found:
         return Command(update={
-            "messages": runtime.state.get("messages", []) + [
-                {"role": "system", "content": f"Task '{task_name}' not found"}
-            ]
+            "messages": runtime.state.get("messages", []) + [ToolMessage(content=f"Task '{task_name}' not found.", tool_call_id=runtime.tool_call_id)]
         })
 
     # Create command to update state
@@ -95,7 +92,7 @@ def update_todo_status(task_name: str, is_finished: bool, runtime: ToolRuntime) 
     return Command(update={
         "todo": updated_todos,
         "messages": runtime.state.get("messages", []) + [
-            {"role": "system", "content": f"Task '{task_name}' {status_text}"}
+            ToolMessage(content=f"Task '{task_name}' {status_text}.", tool_call_id=runtime.tool_call_id)
         ]
     })
 

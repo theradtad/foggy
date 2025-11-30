@@ -10,6 +10,7 @@ import os
 
 import click
 from dotenv import load_dotenv
+from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
@@ -61,21 +62,6 @@ def _get_llm_with_tools() -> ChatGoogleGenerativeAI:
     llm = _get_llm()
     return llm.bind_tools(ALL_TOOLS)
 
-def _get_llm_with_todo_tools() -> ChatGoogleGenerativeAI:
-    """Get configured LLM instance with todo management tools bound.
-
-    Returns:
-        ChatGoogleGenerativeAI: Configured Gemini LLM with todo tools bound
-    """
-    llm = _get_llm()
-    todo_tools = [
-        create_todo,
-        update_todo_status,
-        read_todo,
-        get_pending_todos,
-    ]
-    return llm.bind_tools(todo_tools)
-
 
 def welcome_message_node(state: PlanState) -> PlanState:
     """Welcome message node - starting point of the graph.
@@ -89,13 +75,13 @@ def welcome_message_node(state: PlanState) -> PlanState:
         Updated PlanState with welcome message added to messages
     """
     welcome_text = """
-Welcome to Foggy - Your AI-Powered Coding Tutor!
+        Welcome to Foggy - Your AI-Powered Coding Tutor!
 
-I'll help you create a personalized learning plan tailored to your goals.
-Let's start by understanding what you want to learn.
+        I'll help you create a personalized learning plan tailored to your goals.
+        Let's start by understanding what you want to learn.
 
-Please enter your learning goal (or type 'q' to quit):
-"""
+        Please enter your learning goal (or type 'q' to quit):
+        """
 
     click.echo(click.style(welcome_text, fg="cyan"))
 
@@ -104,8 +90,8 @@ Please enter your learning goal (or type 'q' to quit):
 
     return {
         "messages": [welcome_message],
-        "todo": state.todo,
-        "finished": state.finished,
+        "todo": state.get("todo", []),
+        "finished": state.get("finished", False),
     }
 
 
@@ -128,7 +114,7 @@ def human_goal_node(state: PlanState) -> PlanState:
         click.echo(click.style("\nGoodbye! Happy learning!", fg="yellow"))
         return {
             "messages": [HumanMessage(content=user_input)],
-            "todo": state.todo,
+            "todo": state.get("todo", []),
             "finished": True,
         }
 
@@ -137,16 +123,15 @@ def human_goal_node(state: PlanState) -> PlanState:
 
     return {
         "messages": [goal_message],
-        "todo": state.todo,
-        "finished": state.finished,
+        "todo": state.get("todo", []),
+        "finished": state.get("finished", False),
     }
 
 
 def todo_list_generator_node(state: PlanState) -> PlanState:
     """AI TodoListGenerator node - generates task list from user's goal.
 
-    Uses LLM with tools to create todos via create_todo tool calls.
-    The LLM will use the create_todo tool to add tasks to the state.
+    Uses agent with tools to create todos via create_todo tool calls.
 
     Args:
         state: Current PlanState
@@ -154,95 +139,59 @@ def todo_list_generator_node(state: PlanState) -> PlanState:
     Returns:
         Updated PlanState with AI response (may include tool calls for creating todos)
     """
-    llm_with_tools = _get_llm_with_todo_tools()
 
     # Get the user's goal from the last human message
-    user_goal = state.messages[-1]
+    msgs = state.get("messages", [])
+    user_goal = None
+    if len(msgs) > 0:
+        user_goal = msgs[-1]
 
     if (not user_goal):
         click.echo(click.style("\n❌ Error: No learning goal provided.", fg="red"))
         return {
             "messages": [AIMessage(content="Error: No learning goal provided.")],
-            "todo": state.todo,
+            "todo": state.get("todo", []),
             "finished": True,
         }
     
     # Create prompt for todo generation
     todo_generation_prompt = f"""
-Based on the user's learning goal, create a structured todo list for the planning process.
+        Based on the user's learning goal, create a structured todo list for the planning process.
 
-User's goal: {user_goal}
+        User's goal: {user_goal}
 
-Use the create_todo tool to create todos. For example, the list of todos could be as follows:
-1. Search for requirements and prerequisites for this learning goal
-2. Ask the user about their current knowledge level on prerequisites
-3. Generate a detailed plan covering concepts, examples, and projects
-4. Save the final plan to a file
+        Use the create_todo tool to create todos. For example, the list of todos could be as follows:
+        1. Search for requirements and prerequisites for this learning goal
+        2. Ask the user about their current knowledge level on prerequisites
+        3. Generate a detailed plan covering concepts, examples, and projects
+        4. Save the final plan to a file
 
-Save the final plan would be the last step.
-Always use the internet to search for requirements. Hence create a todo for that first.
-Call create_todo for each task.
-"""
+        Save the final plan would be the last step.
+        Always use the internet to search for requirements. Hence create a todo for that first.
+        Call create_todo for each task.
+        """
 
-    # Generate todos using LLM with tools
-    messages = [
-        SystemMessage(content=PLANNING_SYSTEM_PROMPT),
-        HumanMessage(content=todo_generation_prompt),
-    ]
-
-    click.echo(click.style("\n Foggy is generating your Todo List...", fg="green"))
-    response = llm_with_tools.invoke(messages)
-    click.echo(click.style("\n🤖 Foggy:", fg="green"))
-    click.echo(response)
-
-    # Display response to user
-    if response.content:
-        click.echo(click.style("\n📋 Generating Todo List...", fg="green"))
-        click.echo(response.content)
-
-    return {
-        "messages": [response],
-        "todo": state.todo,
-        "finished": state.finished,
-    }
-
-
-def todo_tool_node(state: PlanState) -> PlanState:
-    """Tool Node - executes tool calls from the planner.
-
-    Uses LangGraph's ToolNode to process any tool calls made by the planner node.
-
-    Args:
-        state: Current PlanState
-
-    Returns:
-        Updated PlanState with tool execution results
-    """
-    # Create ToolNode with all available tools
     todo_tools = [
         create_todo,
         update_todo_status,
         read_todo,
-        get_pending_todos,]
-    tool_executor = ToolNode(todo_tools)
+        get_pending_todos,
+    ]
 
-    click.echo(click.style("\n🔧 Executing todo tools...", fg="yellow"))
-    # Execute tools - ToolNode handles the tool calls from the last message
-    result = tool_executor.invoke({"messages": state.messages})
+    todo_agent = create_agent(
+        model=_get_llm(),
+        tools=todo_tools,
+        system_prompt=PLANNING_SYSTEM_PROMPT,
+        state_schema=PlanState
+    )
 
-    click.echo(click.style("✅ Tool execution completed.", fg="yellow"))
-
-    # Handle result being either a dict or a PlanState object
-    if isinstance(result, dict):
-        click.echo(type(result))
-        messages = result.get("messages", [])
-    else:
-        messages = result.messages if hasattr(result, "messages") else []
+    click.echo(click.style("\n Foggy is generating your Todo List...", fg="green"))
+    response = todo_agent.invoke({"messages": [{"role": "user", "content": todo_generation_prompt.strip()}]})
 
     return {
-        "messages": messages,
-        "todo": state.todo,
-        "finished": state.finished,
+        "messages": response["messages"],
+        "todo": response.get("todo", state.get("todo", [])),
+        "finished": response.get("finished", state.get("finished", False)),
     }
 
 

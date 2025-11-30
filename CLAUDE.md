@@ -39,7 +39,7 @@ CLI (Click) → LangGraph Orchestrator → [LLM Agent, Tools, State Management]
 ### Key Components
 
 - **`foggy/cli/commands.py`**: Click-based CLI entry point
-- **`foggy/langgraph/models.py`**: Pydantic models (`Task`, `PlanState`, `UserGoal`, `LearningPlan`)
+- **`foggy/langgraph/models.py`**: Pydantic models (`Task`, `PlanState`)
 - **`foggy/langgraph/tools.py`**: LangGraph tools (`web_search`, `create_todo`, `save_learning_plan`, etc.)
 - **`foggy/prompts.py`**: Version-controlled prompt templates
 - **`foggy/conversation/`**: Response templates and dummy conversation for testing

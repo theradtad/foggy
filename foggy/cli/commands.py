@@ -16,7 +16,6 @@ from typing import NoReturn
 
 from dotenv import load_dotenv
 
-from foggy.conversation.dummy import DummyConversation
 from foggy.graph import foggy_planner_graph, PlanState, save_graph_diagram
 
 # Load environment variables
@@ -58,19 +57,16 @@ def plan() -> None:
         save_graph_diagram()
         # Initialize empty state
         initial_state = PlanState(messages=[], todo=[], finished=False)
+        # Run the planning graph
+        final_state = foggy_planner_graph.invoke(initial_state)
 
-        # Run the LangGraph workflow
-        # The graph will handle all interactions with the user
-        for event in foggy_planner_graph.stream(initial_state):
-            # The nodes handle their own output display via click.echo
-            # We just need to check if we're done
-            if isinstance(event, dict):
-                for node_output in event.values():
-                    # Check if finished (node_output is a PlanState object or dict)
-                    if hasattr(node_output, 'finished') and node_output.finished:
-                        break
-                    elif isinstance(node_output, dict) and node_output.get("finished"):
-                        break
+        click.echo("\n✅ Planning completed successfully!")
+        
+        for todo in final_state.get("todo", []):
+            status = "✔️" if todo.isFinished else "❌"
+            click.echo(f"{status} {todo.name}")
+
+        click.echo("Your personalized learning plan has been generated.")
 
     except KeyboardInterrupt:
         click.echo("\n\n⚠️  Planning interrupted by user.")
@@ -91,10 +87,6 @@ def teach() -> None:
     click.echo("📚 Welcome to Foggy's Teaching Module!")
     click.echo("Let's start learning through examples and projects.")
 
-    # Start dummy conversation
-    conversation = DummyConversation()
-    conversation.start_interactive("Teaching")
-
 
 @cli_group.command()
 def evaluate() -> None:
@@ -106,7 +98,3 @@ def evaluate() -> None:
     """
     click.echo("📊 Welcome to Foggy's Evaluation Module!")
     click.echo("Let's assess your progress and identify areas for growth.")
-
-    # Start dummy conversation
-    conversation = DummyConversation()
-    conversation.start_interactive("Evaluation")

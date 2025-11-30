@@ -4,9 +4,39 @@ This module contains all Pydantic models used throughout the LangGraph workflow
 for state management and data validation.
 """
 
-from typing import List, Annotated, Optional
+from typing import List, Annotated
 from pydantic import BaseModel, Field
+from langchain.agents import AgentState
 from langgraph.graph.message import add_messages
+
+
+def merge_todos(existing: List["Task"], new: List["Task"]) -> List["Task"]:
+    """Reducer function to merge todo lists.
+
+    This function handles concurrent updates to the todo list by merging
+    new todos with existing ones, replacing todos with the same name.
+
+    Args:
+        existing: Current list of tasks in state
+        new: New list of tasks to merge
+
+    Returns:
+        Merged list of tasks with duplicates removed (new values take precedence)
+    """
+    if not existing:
+        return new
+    if not new:
+        return existing
+
+    # Create a dict from existing todos (name -> task)
+    todo_dict = {task.name: task for task in existing}
+
+    # Update with new todos (overwrites existing ones with same name)
+    for task in new:
+        todo_dict[task.name] = task
+
+    # Return as list
+    return list(todo_dict.values())
 
 
 class Task(BaseModel):
@@ -20,63 +50,22 @@ class Task(BaseModel):
     isFinished: bool = Field(default=False, description="Whether the task has been completed")
 
 
-class PlanState(BaseModel):
+class PlanState(AgentState):
     """State management for the Foggy LangGraph workflow.
-    
+
     This model tracks the entire conversation state, todo items, and completion status.
-    
+
     Attributes:
         messages (Annotated[List, add_messages]): Conversation history between user and agents
-        todo (List[Task]): List of tasks that need to be completed
+        todo (Annotated[List[Task], merge_todos]): List of tasks that need to be completed
         finished (bool): Whether the overall planning process is complete
     """
     messages: Annotated[List, add_messages] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="Conversation history between user and agents"
     )
-    todo: List[Task] = Field(
-        default_factory=list, 
+    todo: Annotated[List[Task], merge_todos] = Field(
+        default_factory=list,
         description="List of tasks that need to be completed"
     )
-    todos_created: bool = Field(default=False, description="Whether todos have been created")
     finished: bool = Field(default=False, description="Whether the overall planning process is complete")
-
-
-class UserGoal(BaseModel):
-    """Model for storing user's learning goal information.
-    
-    Attributes:
-        goal (str): The user's learning objective
-        prerequisites (Optional[List[str]]): Known prerequisites for the goal
-        current_knowledge (Optional[dict]): User's current knowledge level in prerequisites
-    """
-    goal: str = Field(..., description="The user's learning objective")
-    prerequisites: Optional[List[str]] = Field(
-        default=None, 
-        description="Required prerequisites for the learning goal"
-    )
-    current_knowledge: Optional[dict] = Field(
-        default=None, 
-        description="User's current knowledge level in prerequisites"
-    )
-
-
-class LearningPlan(BaseModel):
-    """Model for storing generated learning plans.
-    
-    Attributes:
-        title (str): Title of the learning plan
-        sections (List[str]): Structured learning sections
-        estimated_duration (Optional[str]): Estimated time to complete
-        resources (Optional[List[str]]): Recommended resources
-    """
-    title: str = Field(..., description="Title of the learning plan")
-    sections: List[str] = Field(..., description="Structured learning sections")
-    estimated_duration: Optional[str] = Field(
-        default=None, 
-        description="Estimated time to complete the plan"
-    )
-    resources: Optional[List[str]] = Field(
-        default=None, 
-        description="Recommended resources for the learning plan"
-    )

@@ -18,34 +18,6 @@ def maybe_exit_human_node(state: PlanState) -> Literal["planner_node", "__end__"
         return END
     return "planner_node"
 
-def maybe_route_to_todo_tools(state: PlanState) -> Literal["todo_tool_node", "__end__"]:
-    """Decide whether to route to tool_node or todo_list_generator based on the current state.
-
-    Args:
-        state: Current PlanState
-    Returns:
-        One of: "tool_node", "todo_list_generator", or END
-    """
-    click.echo("--- IN MAYBE ROUTE TO TODO TOOLS ---")
-    try:
-        if state.finished:
-            return END
-        msg = state.messages[-1] if state.messages else None
-
-        tools_list = ["create_todo", "read_todo", "update_todo_status"]
-
-        if msg and hasattr(msg, "tool_calls") and len(msg.tool_calls) > 0:
-            for call in msg.tool_calls:
-                if call['name'] in tools_list:
-                    return "todo_tool_node"
-        return END
-    
-    except Exception as e:
-        click.echo(f"Error in maybe_route_to_todo_tools: {e}")
-        click.echo(f"State type: {type(state)}")
-        click.echo(f"State: {state}")
-        raise
-
 
 def maybe_route_to_tools(state: PlanState) -> Literal["tool_node", "write_plan_node", "human_node", "__end__"]:
     """Decide whether to route to tool_node or write_plan_node based on the current state.
