@@ -131,27 +131,10 @@ def read_todo(runtime: ToolRuntime) -> List[Task]:
 
 @tool
 def save_learning_plan(title: str, content: str, user_goal_name: str) -> str:
-    """Save learning plan to markdown file in learning_plans folder.
+    """Save learning plan to json file in learning_plans folder.
     """
     click.echo(click.style(f"\n💾 Tool: save_learning_plan", fg="yellow", bold=True))
-    click.echo(click.style(f"   Title: {title}", fg="yellow"))
-    click.echo(click.style(f"   File: {user_goal_name}.md", fg="yellow"))
-
-    base_path = Path("./learning_plans")
-
-    if not base_path.exists():
-        base_path.mkdir(parents=True)
-    
-    user_goal_name_file = user_goal_name + ".md"
-    user_goal_path = Path(base_path.joinpath(user_goal_name_file.strip().replace(' ', '_')))
-    if user_goal_path.exists():
-        os.remove(user_goal_path)
-        
-    with open(user_goal_path, 'w', encoding='utf-8') as f:
-        f.write(f"# {title}\n\n")
-        f.write(content)
-    
-    return str(user_goal_path)
+    return "Request to save learning plan received. Processing..."
 
 @tool
 def should_continue_planning(runtime: ToolRuntime) -> bool:

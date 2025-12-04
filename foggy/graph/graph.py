@@ -9,7 +9,8 @@ from foggy.graph.nodes import (
     human_goal_node,
     todo_list_generator_node,
     human_node,
-    planner_node
+    planner_node,
+    structure_learning_plan_node
 )
 
 from foggy.graph.tools import (
@@ -44,7 +45,7 @@ foggy_planner_graph_builder.add_node("todo_list_generator_node", todo_list_gener
 foggy_planner_graph_builder.add_node("planner_node", planner_node)
 foggy_planner_graph_builder.add_node("human_node", human_node)
 foggy_planner_graph_builder.add_node("tool_node", tool_node)
-# foggy_planner_graph_builder.add_node("write_plan_node", write_plan_node)
+foggy_planner_graph_builder.add_node("structure_learning_plan_node", structure_learning_plan_node)
 
 foggy_planner_graph_builder.add_conditional_edges("planner_node", maybe_route_to_tools)
 foggy_planner_graph_builder.add_conditional_edges("human_node", maybe_exit_human_node)
@@ -55,7 +56,7 @@ foggy_planner_graph_builder.add_edge("human_goal_node", "todo_list_generator_nod
 
 foggy_planner_graph_builder.add_edge("todo_list_generator_node", "planner_node")
 foggy_planner_graph_builder.add_edge("tool_node", "planner_node")
-# foggy_planner_graph_builder.add_edge("write_plan_node", "planner_node")
+foggy_planner_graph_builder.add_edge("structure_learning_plan_node", "planner_node")
 
 # Build the graph
 foggy_planner_graph = foggy_planner_graph_builder.compile()

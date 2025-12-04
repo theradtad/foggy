@@ -15,7 +15,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 
-from foggy.graph.models import PlanState
+from foggy.graph.models import PlanState, LearningPlan
 from foggy.graph.tools import (
     web_search,
     create_todo,
@@ -63,6 +63,10 @@ def _get_llm_with_tools() -> ChatGoogleGenerativeAI:
     """
     llm = _get_llm()
     return llm.bind_tools(ALL_TOOLS)
+
+def _get_llm_with_structured_plan_output() -> ChatGoogleGenerativeAI:
+    llm = _get_llm()
+    return llm.with_structured_output(LearningPlan, method="json_schema")
 
 
 def welcome_message_node(state: PlanState) -> PlanState:
@@ -308,11 +312,12 @@ def human_node(state: PlanState) -> PlanState:
         "finished": state.get("finished", False),
     }
 
+def structure_learning_plan_node(state: PlanState) -> PlanState:
+    """Structure Learning Plan Node - converts plan text to structured JSON format.
 
-def write_plan_node(state: PlanState) -> PlanState:
-    """Write Plan Node - saves the generated plan to a file.
-
-    Processes save_learning_plan tool call and returns ToolMessage with result.
+    This node takes the conversation history where the plan was discussed,
+    uses an LLM with structured output to extract sections, subsections,
+    and concepts, then saves it as a structured JSON file.
 
     Args:
         state: Current PlanState
@@ -320,54 +325,131 @@ def write_plan_node(state: PlanState) -> PlanState:
     Returns:
         Updated PlanState with ToolMessage containing save result
     """
+    click.echo(click.style("\n🏗️ Structuring learning plan...", fg="cyan", bold=True))
+
     # Get the last message which should contain tool calls
-    last_message = state.messages[-1] if state.messages else None
+    msgs = state.get("messages", [])
+    last_message = None
+    if len(msgs) > 0:
+        last_message = msgs[-1]
+    
+    click.echo(click.style(f"\n The Last message is {last_message}", fg="yellow", bold=True))
 
     if not last_message or not hasattr(last_message, "tool_calls") or not last_message.tool_calls:
-        error_message = AIMessage(content="No tool calls found to process.")
+        error_message = ToolMessage(
+            content="No tool calls found to process.",
+            tool_call_id="error"
+        )
         return {
             "messages": [error_message],
             "todo": state.get("todo", []),
             "finished": state.get("finished", False),
         }
 
-    # Process tool calls for save_learning_plan
-    outbound_msgs = []
+    structure_model = _get_llm_with_structured_plan_output()
 
-    for tool_call in last_message.tool_calls:
-        if tool_call["name"] == "save_learning_plan":
-            title = tool_call["args"].get("title", "Learning Plan")
-            content = tool_call["args"].get("content", "")
-            user_goal_name = tool_call["args"].get("user_goal_name", "learning_plan")
+    msgs = [SystemMessage(content="""You are an expert at structuring learning plans.
+Extract a well-organized learning plan from the conversation, creating logical sections and subsections.""")]
 
-            try:
-                file_path = save_learning_plan(
-                    title=title,
-                    content=content,
-                    user_goal_name=user_goal_name
-                )
-                click.echo(click.style(f"\n✅ Plan saved to: {file_path}", fg="green"))
+    # Prompt to extract structured plan
+    structure_prompt = f"""Based on the conversation below, extract a structured learning plan.
 
-                # Return ToolMessage with result
+Conversation:
+{last_message}
+
+Extract:
+1. The main learning goal
+2. Prerequisites needed (list of strings)
+3. Sections with:
+   - Unique id (e.g., "section_1", "section_2")
+   - Name of the section
+   - Description
+   - Subsections with:
+     - Unique id (e.g., "subsection_1_1", "subsection_1_2")
+     - Name
+     - Description
+     - Key concepts (list of strings)
+"""
+    msgs.append(HumanMessage(content=structure_prompt))
+
+    try:
+        # Get structured output from model
+        structured_plan: LearningPlan = structure_model.invoke(msgs)
+
+        click.echo(click.style(f"✅ Plan structured successfully - Goal: {structured_plan.goal}", fg="green"))
+        click.echo(click.style(f"   Sections: {len(structured_plan.sections)}", fg="green"))
+
+        # Convert to JSON format matching the expected structure
+        import json
+        from datetime import datetime
+        from pathlib import Path
+
+        json_plan = {
+            "goal": structured_plan.goal,
+            "prerequisites": structured_plan.prerequisites,
+            "sections": [],
+            "metadata": {
+                "created_at": datetime.now().isoformat(),
+                "version": "1.0"
+            }
+        }
+
+        # Add sections with subsections
+        for section in structured_plan.sections:
+            section_data = {
+                "id": section.id,
+                "name": section.name,
+                "description": section.description,
+                "subsections": []
+            }
+
+            for subsection in section.subsections:
+                subsection_data = {
+                    "id": subsection.id,
+                    "name": subsection.name,
+                    "description": subsection.description,
+                    "concepts": subsection.concepts,
+                    "isCompleted": False
+                }
+                section_data["subsections"].append(subsection_data)
+
+            json_plan["sections"].append(section_data)
+
+        # Save to file in learning_plans folder
+        base_path = Path("./learning_plans")
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        file_path = base_path / "learning_plan.json"
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(json_plan, f, indent=2, ensure_ascii=False)
+
+        click.echo(click.style(f"✅ Plan saved to: {file_path.absolute()}", fg="green"))
+
+        # Create tool message response for each tool call
+        outbound_msgs = []
+        for tool_call in last_message.tool_calls:
+            if tool_call["name"] == "save_learning_plan":
                 tool_message = ToolMessage(
-                    content=f"Plan saved successfully to: {file_path}",
+                    content=f"Learning plan structured and saved successfully to: {file_path.absolute()}",
                     tool_call_id=tool_call["id"]
                 )
                 outbound_msgs.append(tool_message)
 
-            except Exception as e:
-                tool_message = ToolMessage(
-                    content=f"Error saving plan: {str(e)}",
-                    tool_call_id=tool_call["id"]
-                )
-                outbound_msgs.append(tool_message)
+        return {
+            "messages": outbound_msgs,
+            "todo": state.get("todo", []),
+            "finished": state.get("finished", False),
+        }
 
-    if not outbound_msgs:
-        error_message = AIMessage(content="No save_learning_plan tool calls found.")
-        outbound_msgs.append(error_message)
-
-    return {
-        "messages": outbound_msgs,
-        "todo": state.get("todo", []),
-        "finished": state.get("finished", False),
-    }
+    except Exception as e:
+        click.echo(click.style(f"❌ Error structuring plan: {str(e)}", fg="red"))
+        error_message = ToolMessage(
+            content=f"Error structuring and saving plan: {str(e)}",
+            tool_call_id=last_message.tool_calls[0]["id"] if last_message.tool_calls else "error"
+        )
+        return {
+            "messages": [error_message],
+            "todo": state.get("todo", []),
+            "finished": state.get("finished", False),
+        }

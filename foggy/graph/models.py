@@ -4,7 +4,7 @@ This module contains all Pydantic models used throughout the LangGraph workflow
 for state management and data validation.
 """
 
-from typing import List, Annotated
+from typing import List, Annotated, Optional
 from pydantic import BaseModel, Field
 from langchain.agents import AgentState
 from langgraph.graph.message import add_messages
@@ -41,13 +41,58 @@ def merge_todos(existing: List["Task"], new: List["Task"]) -> List["Task"]:
 
 class Task(BaseModel):
     """Represents a single task in the learning plan.
-    
+
     Attributes:
         name (str): The description of the task to be completed
         isFinished (bool): Whether the task has been completed
     """
     name: str = Field(..., description="The description of the task to be completed")
     isFinished: bool = Field(default=False, description="Whether the task has been completed")
+
+
+class Subsection(BaseModel):
+    """Represents a subsection within a learning plan section.
+
+    Attributes:
+        id (str): Unique identifier for the subsection
+        name (str): Name of the subsection
+        description (str): Description of what will be covered
+        concepts (List[str]): List of key concepts covered in this subsection
+        isCompleted (bool): Whether the subsection has been completed
+    """
+    id: str = Field(..., description="Unique identifier for the subsection")
+    name: str = Field(..., description="Name of the subsection")
+    description: str = Field(..., description="Description of what will be covered")
+    concepts: List[str] = Field(default_factory=list, description="List of key concepts covered")
+    isCompleted: bool = Field(default=False, description="Whether the subsection has been completed")
+
+
+class Section(BaseModel):
+    """Represents a section in the learning plan.
+
+    Attributes:
+        id (str): Unique identifier for the section
+        name (str): Name of the section
+        description (str): Description of what will be covered
+        subsections (List[Subsection]): List of subsections within this section
+    """
+    id: str = Field(..., description="Unique identifier for the section")
+    name: str = Field(..., description="Name of the section")
+    description: str = Field(..., description="Description of what will be covered")
+    subsections: List[Subsection] = Field(default_factory=list, description="List of subsections")
+
+
+class LearningPlan(BaseModel):
+    """Represents a complete structured learning plan.
+
+    Attributes:
+        goal (str): The learning goal
+        prerequisites (List[str]): List of prerequisites needed
+        sections (List[Section]): List of sections in the learning plan
+    """
+    goal: str = Field(..., description="The learning goal")
+    prerequisites: List[str] = Field(default_factory=list, description="List of prerequisites needed")
+    sections: List[Section] = Field(default_factory=list, description="List of sections in the learning plan")
 
 
 class PlanState(AgentState):

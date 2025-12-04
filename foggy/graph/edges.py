@@ -20,14 +20,14 @@ def maybe_exit_human_node(state: PlanState) -> Literal["planner_node", "__end__"
     return "planner_node"
 
 
-def maybe_route_to_tools(state: PlanState) -> Literal["tool_node", "human_node", "__end__"]:
-    """Decide whether to route to tool_node or write_plan_node based on the current state.
+def maybe_route_to_tools(state: PlanState) -> Literal["tool_node", "structure_learning_plan_node", "human_node", "__end__"]:
+    """Decide whether to route to tool_node, structure_learning_plan_node, or human_node.
 
     Args:
         state: Current PlanState
 
     Returns:
-        One of: "tool_node", "write_plan_node", "human_node", or END
+        One of: "tool_node", "structure_learning_plan_node", "human_node", or END
     """
     if state.get("finished", False):
         click.echo(click.style("\n🚪 Edge: Exiting workflow (finished=True)", fg="cyan", bold=True))
@@ -35,6 +35,13 @@ def maybe_route_to_tools(state: PlanState) -> Literal["tool_node", "human_node",
 
     msgs = state.get("messages", [])
     if msgs and hasattr(msgs[-1], "tool_calls") and msgs[-1].tool_calls:
+        # Check if save_learning_plan is in the tool calls
+        for tool_call in msgs[-1].tool_calls:
+            if tool_call.get("name") == "save_learning_plan":
+                click.echo(click.style("\n➡️ Edge: Routing to structure_learning_plan_node (save_learning_plan detected)", fg="cyan", bold=True))
+                return "structure_learning_plan_node"
+
+        # Otherwise route to regular tool node
         click.echo(click.style("\n➡️ Edge: Routing to tool_node (tool calls detected)", fg="cyan", bold=True))
         return "tool_node"
     else:

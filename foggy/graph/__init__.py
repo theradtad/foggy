@@ -22,7 +22,7 @@ from foggy.graph.nodes import (
     todo_list_generator_node,
     human_node,
     planner_node,
-    write_plan_node,
+    structure_learning_plan_node,
     ALL_TOOLS,
 )
 from foggy.graph.graph import foggy_planner_graph, save_graph_diagram
@@ -45,7 +45,7 @@ __all__ = [
     "todo_list_generator_node",
     "human_node",
     "planner_node",
-    "write_plan_node",
+    "structure_learning_plan_node",
     "ALL_TOOLS",
     # Graph
     "foggy_planner_graph",
