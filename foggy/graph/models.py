@@ -205,6 +205,9 @@ class TeachState(AgentState):
     completed_subsections: List[str] = Field(
         default_factory=list, description="Subsection IDs that are complete"
     )
+    isSetupFinished: bool = Field(
+        default=False, description="Tracks if the setup is finished."
+    )
 
 
 class SubsectionCompletion(BaseModel):

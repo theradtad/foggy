@@ -2,3 +2,4 @@ poetry.lock
 **/__pycache__
 .env
 learning_plans
+setup_instructions

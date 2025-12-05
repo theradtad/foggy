@@ -148,3 +148,65 @@ def should_continue_planning(runtime: ToolRuntime) -> bool:
 
     # Continue if there are pending todos and planning is not finished
     return len(pending_todos) > 0 and not finished
+
+
+# Teach Mode Tools
+
+@tool
+def read_file_tool(file_path: str) -> str:
+    """Read contents of a file.
+
+    Args:
+        file_path: Path to file to read
+
+    Returns:
+        File contents or error message
+    """
+    click.echo(click.style(f"\n📄 Tool: read_file_tool", fg="yellow", bold=True))
+    click.echo(click.style(f"   File: {file_path}", fg="yellow"))
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        click.echo(click.style(f"   ✓ Successfully read {len(content)} characters", fg="green"))
+        return content
+    except FileNotFoundError:
+        error_msg = f"Error: File not found: {file_path}"
+        click.echo(click.style(f"   ✗ {error_msg}", fg="red"))
+        return error_msg
+    except Exception as e:
+        error_msg = f"Error reading file: {str(e)}"
+        click.echo(click.style(f"   ✗ {error_msg}", fg="red"))
+        return error_msg
+
+
+@tool
+def write_file_tool(file_path: str, content: str) -> str:
+    """Write content to a file.
+
+    Args:
+        file_path: Path to file to write
+        content: Content to write
+
+    Returns:
+        Success message or error
+    """
+    click.echo(click.style(f"\n✍️  Tool: write_file_tool", fg="yellow", bold=True))
+    click.echo(click.style(f"   File: {file_path}", fg="yellow"))
+
+    try:
+        # Create parent directories if needed
+        parent_dir = os.path.dirname(file_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        success_msg = f"Successfully wrote to {file_path}"
+        click.echo(click.style(f"   ✓ {success_msg}", fg="green"))
+        return success_msg
+    except Exception as e:
+        error_msg = f"Error writing file: {str(e)}"
+        click.echo(click.style(f"   ✗ {error_msg}", fg="red"))
+        return error_msg

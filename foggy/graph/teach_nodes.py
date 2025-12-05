@@ -7,13 +7,34 @@ Version: 1.0.0
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Literal
 
 import click
-from langchain_core.messages import SystemMessage
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 
 from foggy.graph.models import TeachState, SectionInfo, SubsectionStatus
+from foggy.graph.tools import read_file_tool, write_file_tool
+
+# Load environment variables
+load_dotenv()
+
+
+def _get_llm() -> ChatGoogleGenerativeAI:
+    """Get configured LLM instance.
+
+    Returns:
+        ChatGoogleGenerativeAI: Configured Gemini LLM instance
+    """
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    return ChatGoogleGenerativeAI(
+        model=model_name,
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+    )
 
 
 def load_next_section_node(state: TeachState) -> TeachState:
@@ -159,3 +180,93 @@ def route_after_load(state: TeachState) -> Literal["setup_env", "finish"]:
         return "setup_env"
     else:
         return "finish"
+
+
+def setup_env_node(state: TeachState) -> TeachState:
+    """Generate setup instructions file for the current section.
+
+    This node uses an agent to create a setup.md file with instructions
+    for setting up the learning environment.
+
+    Args:
+        state: Current TeachState
+
+    Returns:
+        Updated TeachState with setup instructions created
+    """
+    if state.get("finished", False):
+        click.echo(click.style("Exiting the setup node", fg="yellow"))
+        return {
+            "messages": state.get("messages", []),
+            "learning_plan": state.get("learning_plan", {}),
+            "goal": state.get("goal", ""),
+            "current_section": state.get("current_section"),
+            "current_subsection": state.get("current_subsection"),
+            "completed_sections": state.get("completed_sections", []),
+            "completed_subsections": state.get("completed_subsections", []),
+            "isSetupFinished": True
+        }
+
+
+    current_section = state.get("current_section")
+
+    # Early exit if no current section
+    if not current_section:
+        click.echo(click.style("⚠️  No section to set up", fg="yellow"))
+        return {
+            "messages": [SystemMessage(content="No section to set up")],
+            "learning_plan": state.get("learning_plan", {}),
+            "goal": state.get("goal", ""),
+            "current_section": None,
+            "current_subsection": None,
+            "completed_sections": state.get("completed_sections", []),
+            "completed_subsections": state.get("completed_subsections", []),
+            "isSetupFinished": True
+        }
+
+    click.echo(click.style("\n🔧 Generating setup instructions...", fg="cyan", bold=True))
+    click.echo(f"   Section: {current_section.name}")
+    click.echo(f"   Description: {current_section.description}\n")
+
+    SETUP_PROMPT = f"""
+    You are an expert at creating clear and concise setup instructions for learning environments.
+    Given a section details, generate step-by-step setup instructions that a student can follow to
+    prepare their environment for learning.
+    Provide the instructions in markdown format with appropriate headings and bullet points.
+
+    Always check the existing setup.md file's contents and then update the file if necessary.
+    If the existing setup.md is sufficient, do not make any changes.
+    The existing setup file is present at the path: ./setup_instructions/setup.md.
+    Use the read_file tool to read from existing files.
+    Use the write_file tool to write to new files. This overwrites existing files.
+
+    After the setup.md file is created or updated, inform the user that it has been updated.
+    """
+
+    setup_agent = create_agent(
+        model=_get_llm(),
+        tools=[read_file_tool, write_file_tool],
+        system_prompt=SETUP_PROMPT
+    )
+
+
+    setup_generation_prompt = f"""
+    Section Name: {current_section.name}
+    Section Description: {current_section.description}
+    Generate or update the setup.md file with clear setup instructions for this section.
+    """
+
+    click.echo(click.style("\n Foggy is generating your Setup Instructions...", fg="green"))
+    response = setup_agent.invoke({"messages": [{"role": "user", "content": setup_generation_prompt.strip()}]})
+    click.echo(click.style("✅ Setup Instructions are generated.", fg="green"))
+
+    return {
+        "messages": response["messages"],
+        "learning_plan": state.get("learning_plan", {}),
+        "goal": state.get("goal", ""),
+        "current_section": None,
+        "current_subsection": None,
+        "completed_sections": state.get("completed_sections", []),
+        "completed_subsections": state.get("completed_subsections", []),
+        "isSetupFinished": True
+    }
